@@ -4,6 +4,7 @@ This is a pointer to a very old project hosted in sourceforge
 
 Website: https://crono.sourceforge.net/
 
+Last update of this project was around 2005.
 
 # crono
 
