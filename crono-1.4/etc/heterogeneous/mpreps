@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+#
+# Master Pre-Processing Script
+#
+#
+# Variables Available:
+#   - CR_CLUSTER  = cluster name
+#   - CR_USERID   = user id
+#   - CR_USERNAME = user name
+#   - CR_NODES    = list of user nodes (e.g. : "tropical01 tropical02")
+#   - CR_NODESINFO  = list of user nodes with additional information
+#          Format: (for each node)
+#             <hostname>:<nodetype>:<architecture>:
+#             <number of processes>:"<description>"<space>
+#   - CR_RID      = request id
+#
+#############################################################################
+CRONOBIN=/usr/local/crono/bin/
+
+#Create machine file for mpich ethernet
+$CRONOBIN/crmkmachfile -u $CR_USERID -c tropical \
+  -env mpiether -n `eval $CRONOBIN/crnodesinfofilter $CR_NODESINFO`

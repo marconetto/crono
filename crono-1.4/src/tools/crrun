@@ -1,0 +1,332 @@
+#!/bin/sh
+################################################################################
+# Copyright (C) 2002-2004 Marco Aurelio Stelmar Netto <stelmar@cpad.pucrs.br>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+################################################################################
+
+################################################################################
+# This script should be adapted to be used in your environment
+################################################################################
+CRSETDEF="/usr/local//bin/crsetdef"
+NEXEC_ENVS=1
+EXEC_ENVS=("mpiether /usr/local/mpich-ether/bin/mpirun")
+
+#NEXEC_ENVS=2
+#EXEC_ENVS=("mpiether /usr/local/mpich-ether/bin/mpirun"
+#           "mpigm    /usr/local/mpich-gm/bin/mpirun   "
+#          )
+
+NARCHS=1
+ARCHS=("ia32")
+#NARCHS=2
+#ARCHS=("ia64" "ia32")
+################################################################################
+USERARGS=
+NUSERARGS=0
+CRARCH=
+CRCLUSTER=
+CRENV=
+CRENV_COMMAND=
+CRNP=
+CREXECUTABLE=
+CRMACHFILE=
+declare -a CR_ARRAY_COMMANDS=
+CR_NARRAY_COMMANDS=0
+CR_FINAL_COMMAND=
+################################################################################
+## Check architecture $1 -> CRARCH
+################################################################################
+crrun_check_arch()
+{
+  if [ ! $CRARCH ] ;then
+    return
+  fi
+
+  for ((i=0;i<$NARCHS;i++)) ; do
+     if [ "$1" == "${ARCHS[$i]}" ] ; then
+       return
+     fi
+  done
+
+  echo "$1: Invalid architecture environment"
+  crrun_usage
+}
+################################################################################
+## Check execution environment $1 -> CRENV
+################################################################################
+crrun_check_exec_env()
+{
+   for ((i=0;i<$NEXEC_ENVS; i++)) ; do
+     if [ $1 == `echo ${EXEC_ENVS[$i]} | awk '{ print $1 }'` ] ; then
+       CR_EXEC_COMMAND=`echo ${EXEC_ENVS[$i]} | awk '{ print $2 }'`
+       return
+     fi
+  done
+
+  echo "$1: Invalid execution environment"
+  crrun_usage
+}
+################################################################################
+## Get machine files information 
+################################################################################
+crrun_get_machfiles_info()
+{
+  
+  for ((i=0;i<$NARCHS;i++)) ; do
+    if [[ ! "$CRARCH" || "$CRARCH" == "${ARCHS[$i]}" ]] ; then
+      FILE="$HOME/.crono/machfile.$CRCLUSTER.${ARCHS[$i]}.$CRENV"
+      if [ -f $FILE ]; then
+        #ARCHITECTURE
+        CR_ARRAY_COMMANDS[$CR_NARRAY_COMMANDS]=${ARCHS[$i]}
+        let CR_NARRAY_COMMANDS++
+        #MACHFILE
+        CR_ARRAY_COMMANDS[$CR_NARRAY_COMMANDS]=$FILE
+        let CR_NARRAY_COMMANDS++
+        #NMACHINES
+        CR_ARRAY_COMMANDS[$CR_NARRAY_COMMANDS]=`wc -l $FILE | awk '{ print $1}'`
+        let CR_NARRAY_COMMANDS++
+        #NP
+        CR_ARRAY_COMMANDS[$CR_NARRAY_COMMANDS]=0 
+        let CR_NARRAY_COMMANDS++
+      fi
+    fi 
+  done
+  if [ $CR_NARRAY_COMMANDS == 0 ] ;then
+    echo "Machine files for $CRENV environment and $CRCLUSTER cluster not found"
+    exit
+  fi
+}
+################################################################################
+## Parser the command line
+################################################################################
+crrun_getargs() 
+{
+  if [[ "$1" == "--help" || "$1" == "" ]] ; then
+     crrun_usage
+  fi
+  I=1
+  while [ $# -gt 0 ] ; do
+     arg=$1
+      
+     case $arg in
+       -c) if [ $CRCLUSTER ] ;then
+             USERARGS="$USERARGS $arg"
+             let NUSERARGS++
+             shift
+             continue
+           fi
+
+          shift
+          if [ "$1" == "" ] ; then 
+            echo "Syntax Error"
+            crrun_usage
+          fi
+          CRCLUSTER=$1
+          ;;
+       -env)
+           shift #
+           if [ "$1" == "" ] ; then 
+              echo "Syntax Error"
+              crrun_usage
+           fi
+           CRENV=$1
+           ;;
+       -arch)
+           shift
+           if [ "$1" == "" ] ; then 
+             echo "Syntax Error"
+             crrun_usage
+           fi
+           CRARCH=$1
+           ;;
+        -machinefile)
+             shift
+             if [ "$1" == "" ] ; then
+                 echo "Syntax Error"
+                 crrun_usage
+             fi
+            CRMACHFILE=$1
+          ;;
+       -np) 
+           shift 
+           if [ "$1" == "" ] ; then 
+             echo "Syntax Error"
+             crrun_usage
+           fi
+           if [ "$1" -le "0" ] ;then
+             echo "NP must greater than zero"
+             exit
+           fi
+           CRNP=$1
+           shift
+           if [ "$#" -ge "1" ] ;then
+              CREXECUTABLE="$1"
+           else
+             echo "Execution file was not provided"
+             exit
+           fi
+           ;;
+
+        *) 
+          USERARGS="$USERARGS $arg"
+          let NUSERARGS++
+          ;; 
+    esac
+       shift
+  done
+
+
+  #Get the missing parameters using the crsetdef
+  if [ "$CRCLUSTER" == "" ];then
+    #echo "Getting Cluster name from defaults file"
+    if [ ! -f $CRSETDEF ] ; then
+       echo -e "$CRSETDEF: command not found\n"
+       crrun_usage
+    fi
+    TMP=`crsetdef cluster`
+    if [[ ! `echo "$TMP" | grep "Keyword not defined"` ]] ; then
+         CRCLUSTER=$TMP
+    else
+        echo "Cluster not defined"
+        crrun_usage
+    fi
+  fi
+
+  if [ "$CRENV" == "" ] ;then
+    #echo "Getting Execution Environment from defaults file"
+    if [ ! -f $CRSETDEF ] ; then
+       echo -e "$CRSETDEF: command not found\n"
+       crrun_usage
+    fi 
+    TMP=`crsetdef mpirun`
+    if [[ ! `echo "$TMP" | grep "Keyword not defined"` ]] ; then
+          CRENV=$TMP
+    else 
+       echo "Execution Environment not defined"
+       echo -e "You can use the crsetdef command to define <mpirun>\n"
+       crrun_usage
+    fi  
+  fi  
+
+  if [ "$CRARCH" == "" ] ;then
+    #echo "Getting Execution Environment from defaults file"
+    if [ ! -f $CRSETDEF ] ; then
+       echo -e "$CRSETDEF: command not found\n"
+       crrun_usage
+    fi 
+    TMP=`crsetdef arch`
+    if [[ ! `echo "$TMP" | grep "Keyword not defined"` ]] ; then
+          CRARCH=$TMP
+    fi  
+  fi  
+
+  if [ ! $CRNP ] ;then
+    echo "You have to define the number of processes (-np <number>)"
+    exit
+  fi
+}
+##############################################################################
+## Setup the command to be executed
+#############################################################################
+crrun_setup_final_command()
+{
+  CR_FINAL_COMMAND=$CR_EXEC_COMMAND
+  for i in `seq 0 $NCOMMANDS` ; do
+     let "I_ARCH=$i * 4 "
+     let "I_MACHFILE=$i * 4 + 1"
+     let "I_NMACHINES=$i * 4 + 2"
+     let "I_NP=$i * 4 + 3"
+     if [ "$CRMACHFILE" ] ; then
+        MACHFILE=$CRMACHFILE
+     else
+        MACHFILE=${CR_ARRAY_COMMANDS[$I_MACHFILE]}
+     fi
+
+     if [ ${CR_ARRAY_COMMANDS[$I_NP]} != "0" ] ; then
+        CR_FINAL_COMMAND="$CR_FINAL_COMMAND -arch ${CR_ARRAY_COMMANDS[$I_ARCH]}\
+        -machinefile $MACHFILE\
+        -np ${CR_ARRAY_COMMANDS[$I_NP]}"
+     fi
+  done 
+
+  CR_FINAL_COMMAND="$CR_FINAL_COMMAND $CREXECUTABLE $USERARGS"
+  echo $CR_FINAL_COMMAND
+}
+##############################################################################
+## Setup the number of processes (np) for each architecture
+## Transform one -np in more than one -np if necessary 
+#############################################################################
+crrun_setup_nprocs()
+{
+  let "NCOMMANDS= $CR_NARRAY_COMMANDS / 4 - 1"
+
+  NTOTAL=$CRNP
+  while [ "$NTOTAL" -gt "0" ] ; do
+    for i in `seq 0 $NCOMMANDS` ; do
+       let "I_NMACHINES=$i * 4 + 2"
+       let "I_NP=$i * 4 + 3"
+       if [ "$NTOTAL" -lt "${CR_ARRAY_COMMANDS[$I_NMACHINES]}" ] ;then
+         TMP=$NTOTAL
+       else
+         TMP=${CR_ARRAY_COMMANDS[$I_NMACHINES]}
+       fi
+       CR_ARRAY_COMMANDS[$I_NP]=`expr ${CR_ARRAY_COMMANDS[$I_NP]} \+ $TMP`
+       let "NTOTAL-=$TMP"
+       if [ $NTOTAL -le "0" ] ; then
+         break
+       fi
+    done
+  done
+
+}
+################################################################################
+## Show usage of the crrun command
+################################################################################
+crrun_usage()
+{
+  local tmp
+  local a
+
+  echo -e "Usage: crrun -c <cluster> -env <mpirun> [ -arch <arch> ] [options]\n"
+  echo -e "   Ex.: crrun -c tropical -env mpiether -np 2 hello"
+  echo -e "\tSupported execution environments and architectures" 
+
+  for ((i=0;i<$NEXEC_ENVS;i++)) ; do
+       TMP=`echo ${EXEC_ENVS[$i]} | awk '{ printf "%-15s", $1 }'`
+       echo -en "\t  env: $TMP"
+
+       echo -n "arch:"
+       for ((a=0;a<$NARCHS;a++)) ; do
+          echo -n " ${ARCHS[$a]}" 
+       done
+       echo 
+  done
+
+  echo -ne "\n   If -arch is not specified, one will run on the available\n "
+  echo    "  architectures (the default architecture will be checked)"
+  echo
+  exit
+}
+################################################################################
+## MAIN
+################################################################################
+crrun_getargs $@ 
+crrun_check_exec_env $CRENV
+crrun_check_arch $CRARCH
+crrun_get_machfiles_info
+crrun_setup_nprocs
+crrun_setup_final_command
+$CR_FINAL_COMMAND

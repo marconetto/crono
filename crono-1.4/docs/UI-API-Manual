@@ -1,0 +1,621 @@
+  Cluster Management System CRONO - v1.4
+  CRONO API for the User Interface Commands
+
+
+
+  This document describes the API used to build the User Interface commands.
+  The functions that compose this API can be used to simplify the development
+  of new User Interface commands.
+
+
+  _________________________________________________________________________
+
+
+
+  Table of Contents
+
+
+  1. Structures
+     1.1. SAlloc Structure
+     1.2. SRls Structure
+     1.3. SNodes Structure
+     1.4. SQview Structure
+     1.5. SQview_rminfo Structure
+     1.6. SInfo Structure
+     1.7. SUIPacket Structure
+     1.8. SNmc Structure
+     1.9. STypennodes Structure
+     1.10. SFreenodes Structure
+     1.11. SReq Structure
+     1.12. SGapsnow Structure
+     1.13. Sinfoshow Structure
+     1.14. Sqviewshow Structure
+   
+  2. Operations, functions and return values
+     2.1. Allocate Nodes
+     2.2. Release Nodes or Cancel a Previous Request
+     2.3. Show Accessible Nodes
+     2.4. Get information about the Request Manager Queue 
+     2.5. Set Sqviewshow structure
+     2.6. Get the available gaps that can be allocated at current time
+     2.7. Get the number of user requests in RM's queue
+     2.8. Release memory allocated to store 'qviewshow' data
+     2.9. Get Information about the Access Rights from the Access Manager
+     2.10. Get the maximum number of nodes allowed for allocation now
+     2.11. Get the maximum time allowed for allocation now
+     2.12. Unpack data from AM and put in Sinfoshow structure     
+     2.13. Release memory of the infoshow structure
+     2.14. Node Manager Client
+     2.15. User message
+  _________________________________________________________________________
+
+
+
+  1. Structures
+
+  1.1  SAlloc Structure
+  =====================
+
+    typedef struct
+    {
+       int uid,          //userid 
+           requid,       //requester id
+           time,         //time of allocation
+           nnodes,       //number of nodes
+           when,         //allocation (as soon as) and reserve (at a given time)
+           nreserves;    //number of reserves allowed to be queued
+                         //  nreserves is defined and set by the Access Manager
+
+       long tstart,       //start time
+            tfinish;      //finish time
+
+       char shared,       //share nodes with other users
+            qualitative;  //qualitative or quantitative allocation
+       char *cluster,     //cluster name
+            *bjscript,    //batch job script
+            *path;        //working path
+
+       void *nodes;       //<ntypes><node type><nnodes><node type><nnodes>....
+                          //*nodes -> used by the qualitative allocation
+    }SAlloc;
+
+
+   If 'tstart' is 0 then the user wants resources as soon as possible,
+   so 'time' must be set.
+
+   If 'tstart' is used then it's necessary to use the 'time' or the
+   'tfinish'. If both 'time' and 'tfinish' are different than 0, 'tfinish' is
+    used and 'time' is ignored.
+   
+   Possible values for the following variables:
+
+     'when': CR_ALLOC_SOON -> user wants resources as soon as possible
+             CR_ALLOC_FUTURE  -> user wants resources at a given time
+
+     'shared': FALSE -> space sharing allocation
+               TRUE -> time sharing allocation
+
+     'qualitative': FALSE -> quantitative allocation
+                    TRUE -> qualitative allocation
+
+     'bjscript':  NULL -> interactive allocation
+                 !NULL -> batch job mode
+
+     'path':  NULL -> interactive allocation
+             !NULL -> batch job mode
+
+     'nodes': NULL -> quantitative allocation
+             !NULL -> qualitative allocation
+             Format :<ntypes><node type><nnodes><node type><nnodes>...
+
+
+  1.2  SRls Structure
+  ===================
+
+    typedef struct
+    { 
+       int uid,         //userid
+           requid,      //requester id
+           rid;         //request id
+       char *cluster;   //cluster name
+    }SRls;
+
+    The 'rid' variable is used to cancel a reserve (resources to be used at a
+    given time).
+
+
+  1.3  SNodes Structure
+  =====================
+
+    typedef struct
+    { 
+       int uid;       //userid
+       char oper;     //user nodes, all cluster nodes, with or without
+                      // information
+       char *cluster; //cluster name
+    }SNodes;
+
+    Possible values for the following variables:
+       'oper' : 
+               CRNODES_USERNODES:      view user nodes
+               CRNODES_USERNODES_INFO: view user nodes + node information
+               CRNODES_ALLNODES:       view all cluster nodes
+               CRNODES_ALLNODES_INFO:  view all cluster nodes + node inf.
+ 
+
+
+  1.4  SQview Structure
+  =====================
+
+    typedef struct
+    { 
+       int uid;         //userid
+       char type,       //show information regarding node types
+            *cluster;   //cluster name
+    }SQview;
+
+    Possible values for the following variables:
+       'type' : TRUE   -> show node types information
+                FALSE  -> do not show node types information
+
+
+  1.5  SQview_rminfo Structure
+  ============================
+
+    typedef struct
+    {
+       int nnodes,     //number of nodes
+           nshare,     //share option
+           fshare,     //free nodes(share)
+           fexclusive, //free node(exclusive)
+           nreqs;      //number of requests in the queue
+       time_t time;    //RM time
+    }SQview_rminfo;    //Some information about the Request Manager
+
+ 
+  1.6  SInfo Structure
+  ====================
+
+    typedef struct
+    {  int n_time,         //time of allocation (normal)
+           s_time,         //time of allocation (special)
+           n_nnodes,       //number of nodes (normal)
+           s_nnodes,       //number of nodes (special)
+           n_nreserves,    //number of reserves (normal)
+           s_nreserves;    //number of reserves (special)
+       char *nodetype;     //node type (one or more separed by ',')        
+    }SInfo;                //Information about the user access rigths
+
+
+  1.7  SUIPacket Structure
+  ========================
+
+   typedef struct
+   { 
+      int type,     //packet type
+          size;     //packet size
+      void *data;   //packet data
+   }SUIPacket;      //Packet received from Access Manager to User Interface
+
+
+  1.8 SNmc Structure
+  ==================
+
+   typedef struct
+   { 
+      int uid,          //userid
+          oper,         //exec or get operations
+          all;          //flag (all nodes)
+      char *cluster,    //cluster name
+           *operation,  //user operation
+           *nodes;      //list of nodes 
+   }SNmc;               //Node Manager Client
+
+   'oper' values:
+     CR_NMC_GET_OPERATIONS -> get available operations
+     CR_NMC_EXEC_OPERATION -> exec an operation
+
+   nodes format:
+     <hostname><space><hostname><space><hostname><space>...<hostname>
+
+
+  1.9 STypennodes Structure
+  =========================
+
+   typedef struct
+   { 
+      int nnodes;  //number of nodes
+      char *type;  //type of the nodes
+   }STypennodes;
+
+     A simple structure to store the number of nodes of each node type.
+
+
+  1.10 SFreenodes Structure
+  ========================
+
+   typedef struct
+   {  int shared,    
+          exclusive;
+   }SFreenodes;   
+
+    A simple structure to store the number of free nodes for both exclusive
+    and shared allocations.
+
+
+  1.11 SReq Structure
+  ===================
+
+   typedef struct sreq
+   {
+      int uid,              //userid
+          rid,              //requisition id
+          nnodes,           //number of nodes
+          time,             //time of allocation
+          status;           //status of request
+      long tstart, tfinish; //times(start,finish)
+
+      char qualitative,    //qualitative or quantitative allocation
+           shared,         //allocation mode(temporal,spatial)
+           when,           //allocation (as soon as) and reserve (at a given time)
+           exec_tpreps;    //execute pre-processing (flag)
+      
+      pid_t sid;           //session id (for batch job mode)
+      pthread_t  tid;          
+      int ntypes,              //number of node types
+          *nodes;              //user nodes list
+      SReqnodetype *nodetypes; //Number of nodes of each type requested
+      char *bjscript,          //batch job script
+           *path,              //user working path
+           *additinfo;         //additional information
+                               //  Only used in user interface
+                               //  (it can be user login or nodetype name)
+      struct sreq *prox;
+   }SReq;                      //requests in RM's queue
+
+
+  1.12 SGapsnow Structure
+  =======================
+
+    typedef struct
+    {
+       int timeslot,  //amount of time
+           nnodes;    //number of nodes
+
+    }SGapsnow; //Used in showgapsnow UI API function (and in RM as well)
+
+
+  1.13 Sinfoshow Structure
+  =========================
+
+   typedef struct
+   {
+      char *cluster,  //cluster name
+           *group,    //user's group
+           *types,    //node types' description
+           *special;  //special periods
+
+      int nnodes,        //number of nodes in the cluster
+          ntypes,        //number of nodetypes in the cluster
+          usermaxtime,   //maximum amount of time the user can allocate 'now'
+          usermaxnnodes, //maximum number of nodes the user can allocate 'now'
+          ninfo;         //number of 'info' structures received from AM
+
+      STypennodes *infotypes; //number of nodes of each nodetype
+      SInfo       *info;      //Information about the user access rigths
+
+   }Sinfoshow; //structure used in crinfo* functions
+
+
+  1.14 Sqviewshow Structure
+  ===========================
+
+    typedef struct
+    {
+       SQview_rminfo qview_rminfo; //Some information about the Request Manager
+       int ntypes;                 //number of nodetypes
+       SFreenodes *freenodes;      //number of free nodes of each nodetype
+       char **nodetypes;           //nodetypes names
+       SReq *reqs;                 //RM's queue requests
+       int ngaps;                  //number of gaps that can be allocated 'now'
+       SGapsnow *gaps;             //gaps that can be allocated 'now'
+
+    }Sqviewshow; //structure used in crqview* functions
+
+   Note that ntypes and freenodes are only set when the user turns on
+   the 'type' option, that is, this user wants information regarding
+   nodetypes information.
+
+ 
+  2. Operations, functions and return values
+
+  2.1 Allocate Nodes
+  ==================
+
+   PROTOTYPE:
+      int cralloc(SAlloc alloc,char *am_server,int port)
+
+   ARGUMENTS: 
+      alloc -> SAlloc structure
+      am_server -> hostname of the Access Manager
+      port -> listen port of the Access Manager
+
+   RETURN:
+      CR_REQ_QUEUED: Request has been queued 
+      CR_EAM_INVALID_TIME: Invalid time
+      CR_EAM_INVALID_NNODES: Invalid number of nodes
+      CR_EAM_INVALID_NODETYPE: Some node type is wrong
+      CR_EAM_INVALID_CLUSTER: Invalid cluster name
+      CR_EAM_NOT_ACCESS: User doesn't have access to the cluster
+      CR_ERM_USER_ALREADY_ALLOC: User has already allocated some nodes
+      CR_ERM_RESERVE_COLLISION: Reserve NOT created. Collision time was detected
+      CR_ERM_RESERVE_UID_EXISTS_THIS_PERIOD: User already has a request in this
+                                             period
+      CR_ERM_NRESERVES_EXCEEDED: Number of reserves exceeded
+      CR_RESERVE_TSTART_LESSER_NOW: Reserve NOT created. The starting time is
+                                    not correct
+      CR_EAM_CANNOT_CONNECT_AM: Cannot connect to Access Manager
+      CR_EAM_CANNOT_CONNECT_RM: Cannot connect to Request Manager
+      CR_ERROR_TRANSFER_DATA: Transfer data error
+      CR_ERROR_ALLOC_MEMORY: Error alloc memory
+
+
+  2.2 Release Nodes or Cancel a Previous Request
+  ==============================================
+
+   PROTOTYPE:
+      int crrls(SRls rls,char *am_server,int port)
+
+   ARGUMENTS:
+      rls -> SRls structure
+      am_server -> hostname of the Access Manager
+      port -> listen port of the Access Manager
+
+   RETURN:
+      CR_RESOURCES_RELEASED: Resources have been released
+      CR_REQUEST_CANCELLED: Request has been cancelled 
+      CR_ERM_USER_NOT_QUEUED: User doesn't has a request queued 
+      CR_RESERVE_NOT_DELETED: Reserve NOT deleted
+      CR_EAM_NOT_ACCESS: User doesn't have access to the cluster
+      CR_EAM_INVALID_CLUSTER: Invalid cluster name
+      CR_EAM_CANNOT_CONNECT_AM: Cannot connect to Access Manager
+      CR_EAM_CANNOT_CONNECT_RM: Cannot connect to Request Manager
+      CR_ERROR_TRANSFER_DATA: Transfer data error
+      CR_ERROR_ALLOC_MEMORY: Error alloc memory
+
+
+  2.3 Show Accessible Nodes
+  =========================
+
+   PROTOTYPE:
+      int crnodes(SNodes nodes,char *am_server,int port,SUIPacket *packet)
+
+   ARGUMENTS:
+      nodes -> SNodes structure
+      am_server -> hostname of the Access Manager
+      port -> listen port of the Access Manager
+      packet -> SUIPacket structure (output)
+
+   RETURN:
+      CR_OK: Request done
+      CR_EAM_NOT_ACCESS: User doesn't have access to the cluster
+      CR_EAM_INVALID_CLUSTER: Invalid cluster name
+      CR_EAM_CANNOT_CONNECT_AM: Cannot connect to Access Manager
+      CR_EAM_CANNOT_CONNECT_RM: Cannot connect to Request Manager
+      CR_ERROR_TRANSFER_DATA: Transfer data error
+      CR_ERROR_ALLOC_MEMORY: Error alloc memory
+
+      packet->data -> list of nodes. 
+      Format: <hostname><space><hostname><space><hostname>...<hostname><\0>
+
+      packet->data -> list of node with additional information
+      Format: (for each node) 
+        <hostname>:<nodetype>:<architecture>:
+        <number of processes>:"<description>"<space> 
+   
+      The strings don't have '\0'
+
+
+  2.4 Get information about the Request Manager Queue 
+  ===================================================
+
+   PROTOTYPE:
+       int crqview(SQview qview,char *am_server,int port,SUIPacket *uipacket)
+
+   ARGUMENTS:
+      qview -> SQview structure
+      am_server -> hostname of the Access Manager
+      port -> listen port of the Access Manager
+      packet -> SUIPacket structure (output)
+
+   RETURN:
+     CR_OK:  Request done
+     CR_EAM_INVALID_CLUSTER: Invalid cluster name
+     CR_EAM_NOT_ACCESS: User doesn't have access to the cluster
+     CR_EAM_CANNOT_CONNECT_AM: Cannot connect to Access Manager
+     CR_EAM_CANNOT_CONNECT_RM: Cannot connect to Request Manager
+     CR_ERROR_TRANSFER_DATA: Transfer data error
+     CR_ERROR_ALLOC_MEMORY: Error alloc memory
+
+
+  2.5 Set Sqviewshow structure
+  ============================
+
+  PROTOTYPE:
+      void crqview_set_qviewshow(void *data, int size, char type,
+                                 Sqviewshow **qviewshow)
+
+  ARGUMENTS:
+     data -> queue information (bytes stream)
+     size -> size in bytes of the queue information
+     type -> identify if the user requested node types information (TRUE|FALSE)
+     qviewshow -> structure to store the queue information
+
+
+  2.6 Get the available gaps that can be allocated at current time
+  ================================================================
+
+   PROTOTYPE:
+      int  crqview_getgaps(SQview qview,char *am_server,int port, int *ngaps,
+                           SGapsnow **gaps)
+
+   ARGUMENTS:
+      qview -> SQview structure
+      am_server -> hostname of the Access Manager
+      port -> listen port of the Access Manager
+      ngaps -> number of gaps
+      gaps -> structure that receives the gaps information
+
+   RETURN:
+      The same as crqview(...)  (see Section 2.4)
+
+
+  2.7 Get the number of user requests in RM's queue
+  =================================================
+
+   PROTOTYPE:
+     int  crqview_getnreqs(SQview qview,char *am_server,int port, int *nreqs)
+
+   ARGUMENTS:
+      qview -> SQview structure
+      am_server -> hostname of the Access Manager
+      port -> listen port of the Access Manager
+      nreqs -> number of requests (output)
+
+   RETURN:
+      The same as crqview(...)  (see Section 2.4)
+
+
+  2.8  Release memory allocated to store 'qviewshow' data
+  =======================================================
+
+   PROTOTYPE:
+     void crqview_free_qviewshow(Sqviewshow *qviewshow)
+
+   ARGUMENTS:
+     qviewshow -> structure that has the information to be released
+
+
+  2.9 Get Information about the Access Rights from the Access Manager
+  ===================================================================
+
+   PROTOTYPE:
+      int crinfo(SInforeq inforeq,char *am_server,int port,SUIPacket *uipacket)
+
+   ARGUMENTS:
+      inforeq -> SInforeq Structure
+      am_server -> hostname of the Access Manager
+      port -> listen port of the Access Manager
+      packet -> SUIPacket structure (output)
+
+   RETURN:
+     CR_OK:  Request done
+     CR_EAM_INVALID_CLUSTER: Invalid cluster name
+     CR_EAM_CANNOT_CONNECT_AM: Cannot connect to Access Manager
+     CR_ERROR_TRANSFER_DATA: Transfer data error
+     CR_ERROR_ALLOC_MEMORY: Error alloc memory
+
+     packet->data -> access rights information.
+
+  
+  2.10 Get the maximum number of nodes allowed for allocation now
+  ===============================================================
+
+   PROTOTYPE:
+      int  crinfo_getmaxnnodes(SInforeq inforeq, char *am_server,int port,
+                               int *maxnnodes)
+
+   ARGUMENTS:
+      inforeq -> SInforeq Structure
+      am_server -> hostname of the Access Manager
+      port -> listen port of the Access Manager
+      maxnnodes -> maximum number of nodes a user can allocate (output)
+
+   RETURN:
+     The same as crinfow(...)  (see Section 2.9)
+
+
+  2.11 Get the maximum time allowed for allocation now
+  ====================================================
+
+  PROTOTYPE:
+     int crinfo_getmaxtime(SInforeq inforeq,char *am_server,int port,
+                           int *maxtime)
+
+  ARGUMENTS:
+     inforeq -> SInforeq Structure
+     am_server -> hostname of the Access Manager
+     port -> listen port of the Access Manager
+     maxtime -> maximum amout of time a user can allocate (output)
+
+  RETURN:
+     The same as crinfow(...)  (see Section 2.9)
+
+
+  2.12 Unpack data from AM and put in Sinfoshow structure     
+  ======================================================
+  
+   PROTOTYPE:
+     void crinfo_set_infoshow(void *data, int size, Sinfoshow **infoshow,
+                              int *ninfoshow)
+
+   ARGUMENTS:
+     data -> access rights information (bytes stream)
+     size -> size in bytes of the queue information
+     infoshow -> array of structures to store the access rights
+     ninfoshow -> number of structures in infoshow
+
+
+  2.13 Release memory of the infoshow structure
+  ============================================
+
+   PROTOTYPE:
+
+     void crinfo_free_infoshow(Sinfoshow *infoshow, int ninfoshow)
+
+   ARGUMENTS:
+     infoshow -> array of structures that thas the access rights
+     ninfoshow -> number of structures in infoshow
+
+
+  2.14 Node Manager Client
+  =======================
+
+   PROTOTYPE:
+      int crnmc(SNmc nmc,char *am_server,int port,SUIPacket *uipacket)
+
+   ARGUMENTS:
+      nmc -> SNmc Structure
+      am_server -> hostname of the Access Manager
+      port -> listen port of the Access Manager
+      packet -> SUIPacket structure (output)
+
+   RETURN:
+     CR_OK:  Request done
+     CR_EAM_INVALID_CLUSTER: Invalid cluster name
+     CR_EAM_NOT_ACCESS: User doesn't have access to the cluster
+     CR_EAM_INVALID_OPERATION: Invalid Operation
+     CR_EAM_CANNOT_CONNECT_AM: Cannot connect to Access Manager
+     CR_EAM_CANNOT_CONNECT_RM: Cannot connect to Request Manager
+     CR_ERROR_TRANSFER_DATA: Transfer data error
+     CR_ERROR_ALLOC_MEMORY: Error alloc memory
+
+     packet->data:
+         Output of the execution (a string) or a list of available operations
+         (strings separed by '\0') 
+
+
+  2.15 User message
+  ================
+     char ui_answer2msg(int answer,char *cluster,char *ui_msg)
+
+  ARGUMENTS:
+     answer -> answer from the request command (allocation, release, ...)
+     cluster -> cluster which the user makes the request
+     ui_msg -> buffer used to store the string answer (output)
+
+  RETURN:
+     TRUE: ui_msg was used
+     FALSE: ui_msg was not used
+
+

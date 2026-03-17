@@ -1,0 +1,37 @@
+################################################################################
+# Nodes file of the tropical cluster
+################################################################################
+#TYPES
+#   
+# type=<nodetype>,arch=<architecture>,nprocs=<numb. of procs>,desc=<description>
+# type=<nodetype>,arch=<architecture>,nprocs=<numb. of procs>,desc=<description>
+#  ...
+#
+# NODES
+#
+#  <hostname>:<nodetype>
+#  <hostname>:<nodetype>
+#  ...
+################################################################################
+TYPES
+
+type=p4,arch=ia32,nprocs=4,desc="Pentium 4,mem=512MB,cpu=2GHz, no video"
+
+NODES
+
+   tropical01:p4
+   tropical02:p4
+   tropical03:p4
+   tropical04:p4
+   tropical05:p4
+   tropical06:p4
+   tropical07:p4
+   tropical08:p4
+   tropical09:p4
+   tropical10:p4
+   tropical11:p4
+   tropical12:p4
+   tropical13:p4
+   tropical14:p4
+   tropical15:p4
+   tropical16:p4

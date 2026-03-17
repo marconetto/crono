@@ -1,0 +1,540 @@
+Crono (Version 1.4) - Wed Dec  8 15:16:44 BRST 2004
+
+* Node Manager: In order to kill the user processes when the user time
+                finishes, it is used pkill command instead of skill command.
+                (Thanks Tiago Ferreto)
+
+* User Interface API: the following functions are now available:
+                     crqview_getgaps: 
+                          Get the available gaps that can to be allocated 
+                     crqview_getnreqs: 
+                          Get the number of user requests in RM's queue
+
+                     Furthermore, other support functions were implemented.
+
+* UI-API-Manual: Updated.
+
+--------------------------------------------------------------------------------
+Crono (Version 1.4rc2) - Wed Aug 25 09:26:05 BRT 2004
+
+* Qualitative allocation: Bug fixed: When a qualitative request which has a
+                          base nodetype and its respective non-base nodetype
+                          is done, the request manager crashes.
+                          Ex.: cralloc -n "p4:2 p4v:1"
+
+--------------------------------------------------------------------------------
+Crono (Version 1.4rc1) - Fri Aug 13 15:42:22 BRT 2004
+
+* Access Rights: There is no more accessrights.users file and
+                 the syntax of the accessrights.defs file was modified.
+                 Check the documentation for details.
+
+* Adm-Manual: Updated.
+
+* crrmd: When a user executes crrls, crrmd stores the remaining time in log file.
+ 
+* crstat: Now it is possible to know the average utilization of a cluster.
+
+--------------------------------------------------------------------------------
+Crono (Version 1.3.7) - Thu Jul  1 17:58:03 BRT 2004
+
+* cralloc/crsetdef: Bug fixed. If the user does not specify the <nodes>
+                    parameter in cralloc and it is not defined in default
+                    parameters file (crsetdef), cralloc tries to allocate 0
+                    nodes.
+
+--------------------------------------------------------------------------------
+Crono (Version 1.3.6) - Tue Jun 29 16:51:16 BRT 2004
+
+* cralloc: Now it is not necessary to specify a file to perform qualitative
+           allocation. But it is still possible to use it.
+           Examples:
+                 cralloc -n p3-550:8
+                      or
+                 cralloc -n "p3-550:8 p4-2g:4" (double commas are needed when
+                                                more than one node type is
+                                                defined)
+
+* Documentation: Updated
+
+--------------------------------------------------------------------------------
+Crono (Version 1.3.5) - Tue May 18 15:33:36 BRT 2004
+
+* Documentation: Updated
+
+* crrmd: Bug fixed in recovering queue function
+
+* crnodes: Included an option to show all cluster nodes and who is using
+           each of them (-w).
+
+--------------------------------------------------------------------------------
+Crono (Version 1.3.4) - Wed May 12 16:28:35 BRT 2004
+
+* crrmd: Bug Fixed: When a user makes a quantitative allocation and the Access
+         Manager allows this user to allocate more nodes than the cluster has,
+         the Request Manager crashes.
+
+* crrmd: When the Request Manager recovers the queue, the user initial times
+         are not modified.
+
+--------------------------------------------------------------------------------
+Crono (Version 1.3.3) - Tue May 11 15:59:49 BRT 2004
+
+* crrmd: The "#! interpreter [arg]" and the execution permission of
+        the Master and User Pre and Post Processing Scripts as well as
+        batch job script are not needed anymore.
+        The mpreps.sh, mpostps.sh, <cluster>.upreps.sh and <cluster>.upostps.sh
+        were replaced by mpreps, mpostps, <cluster>.upreps
+        and <cluster>.upostps.
+
+* bug fixed: In some cases, users making quantitative allocations receive more
+             nodes of some types than they should receive. For this reason,
+             when a quantitative allocation is done, the Access Manager sends
+             the user access rights to the Request Manager.
+
+* Documentation: Updated (thanks Matheus Rodrigues for the suggestions)
+
+--------------------------------------------------------------------------------
+Crono (Version 1.3.2) - Thu Apr 22 20:06:41 BRT 2004
+ 
+* crrmd: rm_attend_reqs_thread() thread was replaced by the
+         try_to_attend_new_req() function. semalloc semaphore is not
+         needed anymore.
+
+* Makefile.defs: CR_PIDSDIR definition is in the crono.conf file (piddir option)
+
+* crrmd: Bug fixed in the crem_kill_session function of the crrm_em.c file
+
+--------------------------------------------------------------------------------
+Crono (Version 1.3.1) - Wed Apr  7 19:23:26 BRT 2004 
+
+* cralloc: When a user provides a batch job, if the bach job name begins with
+           '/', the PWD environment variable is not appended to the batchjob
+           variable. 
+
+* crnmd: CR_NM_KILL_PROC_LOCK -> lock the cluster nodes before kill the user
+                                 processes
+--------------------------------------------------------------------------------
+Crono (Version 1.3) - Fri Mar 12 09:49:48 BRT 2004
+
+* crnmd: The CR_USERNAME, CR_USERID and CR_CLUSTER variables can be used
+         in 'commands' file.
+
+* API: Updated
+
+* Makefile.defs: Updated
+
+--------------------------------------------------------------------------------
+Crono (Version 1.3rc3) - Thu Mar  4 14:30:06 BRT 2004 
+
+* crnmc: bug fixed: it was ignoring the default cluster
+
+--------------------------------------------------------------------------------
+Crono (Version 1.3rc2) - Mon Mar  1 13:06:26 BRT 2004 
+
+* crnodes: Take off the message "Request has been queued"
+
+* cralloc: bug fixed: If a user makes an allocation specifing the final time
+                      and the defaults file doesn't exists, the allocation
+                      is not done.
+
+* crrun: bug fixed in crrun_setup_nprocs function
+
+--------------------------------------------------------------------------------
+Crono (Version 1.3rc1) - Fri Feb 27 15:59:48 BRT 2004
+
+* Qualitative allocation support and other features to manage heterogeneous
+  clusters.
+
+   Many improvements were done:
+ .  Scripts: CR_NODESINFO environment variable was included.
+ .  crqview: -t option shows the requests regaring the node types
+ .  crnodes: -s option can be used to get specific information about the nodes
+ .  cralloc: -n <nodes> option can be used to make a quantitative allocation
+            (if <nodes> is a number) or a qualitative allocation (if <nodes> is
+           a "specification file").
+ . crinfo: show more information about the cluster(s)
+ . crcomp and crrun: support for heterogeneous clusters
+
+* Documentation: Updated
+
+* Scheduler: Bug fixed.
+  When a shared request was made, the request got the some nodes twice. So, it
+   was attended before it should.
+--------------------------------------------------------------------------------
+Crono (Version 1.2.2 ) - Mon Feb  9 16:32:19 BRST 2004 
+
+* Node Manager: Created the CR_NM_KILL_PROC_LOCK type which makes
+  possible to execute one operation to kill processes and lock the nodes.
+
+* Request Manager: The usleep(50000) in crrmd.c file is not more necessary.
+  There was a problem with a semaphore.
+
+* Request Manager: The execl functions in crrm_em.c were replaced by execve.
+   So, the master and user pre and post processing scripts must be either a
+   binary executable, or a script starting with a line of the form "#!
+   interpreter [arg]".
+
+* crono.conf: There is no more 'evalfile' option in crono.conf.
+
+--------------------------------------------------------------------------------
+Crono (Version 1.2.1 ) -  Thu Nov 27 17:46:13 BRST 2003
+
+* Bug fixed: It was not possible to use batch jobs because
+   the 'pas' variable should not be used.
+   (file: crrm_em.c func: crem_exec_batchjob)
+
+--------------------------------------------------------------------------------
+Crono (Version 1.2) - Mon Nov 24 13:30:18 BRST 2003 
+
+* IMPORTANT: This version is based on the 1.1.3 version, so the experimental
+  version features are not included in this version.
+
+* Access Rights: In order to specify the access rights the administrator
+should provide the access right id, type (normal,special), maximum number
+of nodes and time for allocation and reservation:
+
+    <ARN>.<T>.<MTA>.<MTR>.<MNA>.<MNR>
+   Now the administrator provides the access right id, type, maximum number
+   of nodes and time for allocation and the number of number of reserves
+   allowed to be queued:
+
+    <ARN>:<T>.<MTA>.<MNA>.<MNR>
+      
+
+* Reserves: cralloc can make allocations at a given time. So, the crreserve
+  command has been taken off.
+
+* Reserves: Initial and Final time have a new format: HH:MM[-dd[/mm[/yyyy]]] 
+            the old one is: HH:MM-dd/mm/yyyy
+
+* Queue: crqview shows the Request ids.
+
+* Cancel Reserves: In order to cancel reserve requests, it has been added
+   the -rid option in the crrls command (specification of the request id).
+
+--------------------------------------------------------------------------------
+
+Crono ( Experimental Version 1 - not official) - Fri Sep 26 17:04:56 BRT 2003
+
+* crrun and crcomp: Execution and Compilation procedures to support
+                    heterogeneous nodes
+
+* Request Manager: Possibility to specify the number of processes that will
+                   be executed on each node. Both the administrator and users
+                   can have these definitions. The users definitions will have
+                   the preference.  
+
+--------------------------------------------------------------------------------
+Crono (Version 1.1.3) - Fri Sep 19 18:31:06 BRT 2003
+
+* Access Manager: It's not necessary to specify the special periods in 
+                  accessrights.defs file.
+
+* Request Manager: CR_RID variable is available to use in MPREPS, MPOSTPS, UPREPS
+                   and UPOSTPS.  CR_RID is the request id'.
+
+--------------------------------------------------------------------------------
+Crono (Version 1.1.2) - Thu Sep 18 09:07:25 BRT 2003
+
+* Request Manager: Fixed a bug in the Scheduler and make some little
+                   improvements.
+
+* crsetdef: Included the 'mpicomp' and 'mpirun' keywords
+
+* crqview: The number of shared free nodes sometimes is not correct
+
+* Documentation: The documentation has been revised
+
+--------------------------------------------------------------------------------
+Crono (Version 1.1.1) - Tue Sep  9 13:37:17 BRT 2003 
+
+* Little bug fix: When a user releases the resources, the message should
+                  be 'Resources were released', instead of
+                  'Your request was queued'.
+
+* Output crnmc:  It was added a '\n' in the output of the crnmc execution
+                  (of each node executed on)
+
+--------------------------------------------------------------------------------
+Crono (Version 1.1) - Tue Aug 26 14:27:28 BRT 2003
+
+* Communication: The communication protocol between the daemons was improved.
+                 Some messages were taken off.
+
+* API: Creation of an API for the User Interface Commands:
+       (cralloc,crrls,crqview,crnmc,crnodes and crinfo).
+       crreserve is not in this API because we want to merge crreserve and
+       cralloc commands in the next release.
+
+* daemons: Check if the logfile (all daemons) and queuefile (only for the crrmd)
+           have the permission for writing those files.
+
+--------------------------------------------------------------------------------
+Crono (Version 1.0.6) - Wed Jul 23 16:21:16 BRT 2003
+
+* tools: Now there is only one tool (crmkmachfile) to
+         create the machine files. Before we have had the
+         crmachmpiether, crmachmpigm and crmachsimple tools.
+         
+--------------------------------------------------------------------------------
+
+Crono (Version 1.0.5.2) - Tue Jul 15 16:36:36 BRT 2003
+
+* Bug Fix: The Request Manager (crrmd), checks if a user requested
+           more nodes than the number of cluster nodes.
+           Probably the administrator should configure the Access Manager
+           to take care about this, therefore one can make a mistake on the
+           configuration.
+
+* Bug Fix: When time-shared requests are in the queue,
+           the crqview command shows a wrong number of free shared nodes.
+
+--------------------------------------------------------------------------------
+Crono (Version 1.0.5.1) - Thu Apr  3 14:07:50 BRT 2003
+
+* Bug Fix: crrmd doesn't retrieve the reserves from the
+           queue file
+--------------------------------------------------------------------------------
+Crono (Version 1.0.5) - Thu Mar 27 15:41:42 BRT 2003
+
+* crrmd : Request Manager retrieves the queue file
+          by default. There is an option -c to clear the
+          queue fle if it exists.
+
+* config file: It is now called by 'crono.conf'
+
+* sourpath option: It is now called by 'evalfile'
+
+* Identifiers: The requisitions have identifiers
+  
+* Reserves : The reserves and allocations are stored in the
+             same file (the queue file).
+
+* Scheduler: The Crono Scheduler was reimplemented.
+             The main difference to old scheduler is that now
+             when a share type request is done, the scheduler
+             tries to put this request with other(s) request(s)
+             of this type. The scheduler procedures are in the
+             file crrm_schedule.c.
+   
+* Configuration file of the User Interface now accepts comments
+
+--------------------------------------------------------------------------------
+Crono (Version 1.0.4) - Mon Feb 10 15:10:54 BRST 2003
+
+Pre-Processing: If the MPREPS execution takes less time than
+                the 'tmpreps', the user starting time is
+                modified.
+                
+--------------------------------------------------------------------------------
+Crono (Version 1.0.3) - Fri Jan 31 09:50:13 BRST 2003
+
+* Bug fix: The process of UPREPS, MPREPS and Batch Jobs
+           were not killed on the frontend node 
+
+--------------------------------------------------------------------------------
+Crono (Version 1.0.2) - Wed Jan 22 13:39:34 BRST 2003 
+
+* Bug Fix: In the Request Manager the server socket descriptor must
+           be closed in the new process created by fork()
+
+* Bug Fix: Memory allocation problem in the crnmc command
+
+* sourcepath: It is possible to specify a file
+              to be evaluated before the execution of
+              the batch jobs, MPREPS, MPOSTPS, UPREPS and
+              and UPOSTPS 
+
+* Misc:  misc directory renamed by common
+
+--------------------------------------------------------------------------------
+Crono (Version 1.01) - Mon Jan 20 16:26:42 BRST 2003 
+
+* Directories: When a daemon starts it creates the missing directories 
+               of the files specified in the config files
+
+* Improvements: Some improvements on the source
+                code of the starting daemons 
+
+* Bug fixed: Reserves didn't start
+
+* Debug: Turned off some debug messages 
+
+--------------------------------------------------------------------------------
+Crono (Version 1.0) - Fri Jan 10 09:55:35 BRST 2003
+
+* New feature: support for shared reserves 
+
+* New feature: Batch Jobs !!!
+
+* Status: four status were added: mpreproc,mpostproc,
+                               upreproc and batchjob.
+* Pre-Post Proc.: timeout to execute the Master pre and post
+                  processing script 
+           
+* Improvements: Many improvements on the source code
+                of Crono. Many static buffers were
+                replaced by dinamic buffers.
+                The communication between the modules
+                was improved and some little bugs
+                were fixed.
+
+* Bug Fix:  When the Node Manager daemon is not running,
+            the execution of an operation using
+            the crnmc may cause a segmentation fault on
+            the Requisition Manager.
+            
+--------------------------------------------------------------------------------
+Crono (Version 0.5) - Mon Oct 21 19:32:16 BRST 2002
+
+* Right Access: The concept of "priorities" was changed
+                to "access right".
+                Now the priorities file is called by accessrights.defs
+                and users file is called by accessrights.users
+
+* cramd: Improved the error messages of the configuration files
+
+* crsetdef: Shows the keywords as in the following way:
+            first are showed the Crono keywords and after
+            the User keywords.
+            
+* Time Out set up: Using the config file, it's
+                   possible to set up a time out
+                   value for the connections
+                   from the Request Manager to
+                   the Node Manager.
+
+* PAM support: As we have implemented Crono on
+               Slackware distribution and Slackware
+               doesn't come with PAM support, Crono
+               was modifing the login.access and 
+               hosts.equiv files.
+               For Linux distributions which comes
+               with PAM support (like Debian, Red hat
+               and Mandrake) this procedure for blocking
+               the access on nodes doesn't work.
+               Therefore, to fix this problem an 
+               option in config file (pam option)
+               was added to specify if the distribution
+               has or not PAM support.
+               More details in administrator manual.
+
+* Bug fix:  A little bug has been fixed in cramd
+           daemon (crinfo operation)
+
+* Defines:  Some important definitions were taken off from
+            src/misc/misc.h file and now they are
+            in the Makefile file.
+
+--------------------------------------------------------------------------------
+Crono (Version 0.4) - Thu Aug 29 14:15:58 BRT 2002
+
+* Some bug fixes and some improvements were done on source code.
+
+* New Feature: User Pre and Post Processing Scripts
+               The user can define some tasks to be
+               executed when the user time starts
+               and when it finishes.
+* Queues: The requests queue can be retrieved from file.
+
+* Single option: The -DSINGLE flag was taken off from Makefile,
+                 and it was added in the config file.
+
+* Reserves:  Collision detection is working.
+
+* Reserves:  The reservers are managed by the
+             Requests Manager.
+             Somethings about reserves must
+             be improved (like collision between
+             the reserves).
+
+--------------------------------------------------------------------------------
+Crono (Version 0.3) - Fri Jul  5 09:07:38 BRT 2002
+
+* Bug Fix: Some bug fixes
+
+* Documentation: Improved documentation :)
+
+* New Feature: Support for Master Post-Processing Script.
+               This script is executed when the user time
+               has finished.
+
+* New Feature: Support for shared allocations!
+               Now the users can choose if they want to
+               share their nodes with other users.
+
+* Queue View:  The reserves are also showed using
+               the crqview command. The status
+               of these requests is "reserved".
+
+* New crrun :  The new syntax of these scripts are:
+  and crcomp      crrun -c <cluster> -env <mpirun> [options]
+                  crcomp -env <mpicomp> [options]
+               The <cluster>, <mpirun> and <mpicomp> can
+               be defined using the crsetdef. Therefore,
+               to execute a program is easier, for example:
+               $ crrun hello_world -np 16 
+               Instead of: 
+               $ crrun tropical mpiether hello_world -np 16   
+
+--------------------------------------------------------------------------------
+Crono (Version 0.2) - Mon May 20 21:52:38 BRT 2002
+
+* New Feature:  New scheduler!
+                Suppose that a user A1 requests resources before 
+                a user A2. Unlike FIFO, the 
+                user A2 can be attend before the user
+                A1, as long as the user A1 doesn't have to wait
+                more than his/her expected time.
+
+* New Feature:  Add kill option on daemons.
+                The user can kill the daemons using
+                the -k flag, instead of use the kill or
+                killall command.
+
+* New Feature:  Add verbose mode for execution of the daemons.
+                To execute a daemon in foreground and with
+                debug messages, the user has to specify
+                the option of verbose mode, otherwise 
+                the daemon will execute in background.
+
+* New crsetdef: If the defaults file cannot be open,
+                the crsetdef command will show some
+                common options that could be set, like
+                "cluster", "time" and "nnodes". Instead
+                of show "Erro opening file XXX".
+                And if, for example, a user just set the
+                "cluster" option, the crsetdef command
+                will show the others common options with value
+                "<empty>".
+
+* Bug Fix: Access Manager get down when it cannot to connect
+           to a Request Manager
+
+* New Feature: If it is compiled with -DSINGLE, it doesn't 
+               connect to nodes for any operation.
+               This is very useful when the user doesn't have 
+               a cluster and he/she wants to install Crono
+               on a single machine.
+
+* Bug Fix: crsetdef: if ~/.crono/defaults is not created,
+           it cannot be written.
+--------------------------------------------------------------------------------
+Crono (Version 0.1 ) - Thu May 2 8:50:47 BRT 2002
+
+* Bug Fix: Some times the users reserves don't start
+
+* New crnmc: When crnmc cannot execute an operation,
+             it shows "Commands not executed",
+             instead of "0" :)
+* Bug Fix: When user executes crnmc, the crrmd crashes if
+           it cannot connect to crnmd of a node.
+--------------------------------------------------------------------------------
+Crono (Version 0.1 beta 1) - Thu Apr 12 14:00:47 BRT 2002
+
+* Basic system
+* Simple FIFO queue
+* Do not allow share allocation
+* Support Master Pre-Processing Script
+* Tools to create machine file for Mpi(Ethernet and GM)

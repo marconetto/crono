@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+#
+# Master Post-Processing Script
+#
+# Variables Available:
+#   - CR_CLUSTER  = cluster name
+#   - CR_USERID   = user id
+#   - CR_USERNAME = user name
+#   - CR_NODES    = list of user nodes (e.g. : "tropical01 tropical02")
+#   - CR_RID      = request id
+#
+#############################################################################
+

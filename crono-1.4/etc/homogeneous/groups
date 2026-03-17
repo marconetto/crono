@@ -1,0 +1,25 @@
+############################################
+# group <group name>
+#    <user>
+#    <user>
+#     ...
+# endgroup  
+#   ...
+#
+############################################
+
+
+group cpad
+   blanco
+   ferreto
+   martins
+   stelmar
+   wolmer
+endgroup
+ 
+group master
+   student1
+   student2
+   student3
+
+endgroup

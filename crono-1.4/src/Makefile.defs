@@ -1,0 +1,26 @@
+#############################################################################
+#  Makefile Definitions for CRONO v1.4
+#
+#  Marco Aurelio Stelmar Netto - stelmar@cpad.pucrs.br 
+#############################################################################
+
+# installation path
+PREF_INSTALL=/local/crono
+
+#############################################################################
+# DEFINES
+#############################################################################
+# default configuration directory
+DIRCONF=$(PREF_INSTALL)/etc
+
+# default path for amconfig file
+DEFAULT_AMCONF=$(DIRCONF)/amconf
+
+# login.access and hosts.equiv files 
+LOGIN_ACCESS_FILE=/etc/security/access.conf
+HOSTS_EQUIV_FILE=/etc/hosts.equiv
+
+# Crono version
+CRONO_VERSION=1.4
+##############################################################################
+

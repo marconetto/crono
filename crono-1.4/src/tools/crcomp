@@ -1,0 +1,219 @@
+#!/bin/sh
+################################################################################
+# Copyright (C) 2002-2004 Marco Aurelio Stelmar Netto <stelmar@cpad.pucrs.br>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+################################################################################
+
+################################################################################
+# This script should be adapted to be used in your environment
+################################################################################
+CRSETDEF="/usr/local//bin/crsetdef"
+NCOMP_ENVS=2
+COMP_ENVS=("ia32 mpiethercc /usr/local/mpich-ether/bin/mpicc"
+           "ia32 mpietherCC /usr/local/mpich-ether/bin/mpiCC"
+          )
+
+#NCOMP_ENVS=6
+#COMP_ENVS=("ia32 mpiethercc /usr/local/mpich-ether/bin/mpicc"
+#           "ia32 mpietherCC /usr/local/mpich-ether/bin/mpiCC"
+#           "ia32 mpigmcc /usr/local/mpich-gm/bin/mpicc"
+#           "ia64 mpiethercc /usr/local/ia64-linux/mpich-ether/bin/mpicc"
+#           "ia64 mpietherCC /usr/local/ia64-linux/mpich-ether/bin/mpiCC"
+#           "ia64 mpigmcc /usr/local/ia64-linux/mpich-gm/bin/mpicc"
+#         )
+################################################################################
+USERARGS=
+NUSERARGS=0
+CRARCH=
+CRENV=
+CREXECUTABLE=
+declare -a CR_ARRAY_COMMANDS
+CR_NARRAY_COMMANDS=0
+CR_FINAL_COMMAND=
+################################################################################
+## Check architecture and compilation environment $1 -> CRARCH $2 -> CRENV
+################################################################################
+crcomp_check_arch_env()
+{
+  ARCH_OK="FALSE"
+  if [ ! $CRARCH ] ;then
+    ARCH_OK="TRUE"
+  fi
+
+  for ((i=0;i<$N;i++)) ; do
+     if [ "$1" == `echo ${COMP_ENVS[$i]} | awk '{ print $1 }'` ] ; then
+       ARCH_OK="TRUE"
+       break
+     fi
+  done
+
+  echo "$1: Invalid architecture environment"
+  crcomp_usage
+}
+################################################################################
+## Get the paths of the compilation environments
+################################################################################
+crcomp_get_comp_env()
+{
+  for ((i=0;i<$NCOMP_ENVS;i++)) ; do
+     TMP_ENV=`echo ${COMP_ENVS[$i]} | awk '{ print $2 }'`   
+     if [ "$1" == $TMP_ENV ] ; then
+       TMP_ARCH=`echo ${COMP_ENVS[$i]} | awk '{ print $1 }'`
+       TMP_PATH=`echo ${COMP_ENVS[$i]} | awk '{ print $3 }'`
+       if [[ ! $CRARCH || $CRARCH == $TMP_ARCH ]] ; then 
+        #ARCHITECTURE
+        CR_ARRAY_COMMANDS[$CR_NARRAY_COMMANDS]=$TMP_ARCH
+        let CR_NARRAY_COMMANDS++
+        #COMMAND PATH
+        CR_ARRAY_COMMANDS[$CR_NARRAY_COMMANDS]=$TMP_PATH
+        let CR_NARRAY_COMMANDS++
+       fi
+     fi
+  done
+
+  if [ "$CR_NARRAY_COMMANDS" == "0" ] ; then
+    echo -e "Check the architecture and compilation environment available\n"
+    exit
+  fi
+}
+################################################################################
+## Parser the command line
+################################################################################
+crcomp_getargs() 
+{
+  if [[ "$1" == "--help" || "$1" == "" ]] ; then
+     crcomp_usage
+  fi
+  while [ $# -gt 0 ] ; do
+     case $1 in
+       -env)
+           shift #
+           if [ "$1" == "" ] ; then 
+              echo "Syntax Error"
+              crcomp_usage
+           fi
+           CRENV=$1
+           ;;
+       -arch)
+           shift
+           if [ "$1" == "" ] ; then 
+             echo "Syntax Error"
+             crcomp_usage
+           fi
+           CRARCH=$1
+           ;;
+        -o)
+         shift
+           if [ "$1" == "" ] ; then
+             echo "Syntax Error"
+             crcomp_usage
+           fi
+           CREXECUTABLE=$1
+           ;;
+        *) 
+          USERARGS="$USERARGS $1"
+          let NUSERARGS++
+          ;; 
+    esac
+       shift
+  done
+
+  #Get the missing parameters using the crsetdef
+  if [ "$CRENV" == "" ] ;then
+    #echo "Getting Execution Environment from defaults file"
+    if [ ! -f $CRSETDEF ] ; then
+       echo -e "$CRSETDEF: command not found\n"
+       crcomp_usage
+    fi 
+    TMP=`crsetdef mpicomp`
+    if [[ ! `echo "$TMP" | grep "Keyword not defined"` ]] ; then
+          CRENV=$TMP
+    else 
+       echo "Execution Environment not defined"
+       echo -e "You can use the crsetdef command to define <mpicomp>\n"
+       crcomp_usage
+    fi  
+  fi  
+  if [ "$CRARCH" == "" ] ;then
+    #echo "Getting Execution Environment from defaults file"
+    if [ ! -f $CRSETDEF ] ; then
+       echo -e "$CRSETDEF: command not found\n"
+       crcomp_usage
+    fi 
+    TMP=`crsetdef arch`
+    if [[ ! `echo "$TMP" | grep "Keyword not defined"` ]] ; then
+          CRARCH=$TMP
+    fi  
+  fi  
+
+}
+##############################################################################
+## Compile
+#############################################################################
+crcomp_compile_prog()
+{
+  let "NCOMMANDS=CR_NARRAY_COMMANDS /2 -1"
+  for i in `seq 0 $NCOMMANDS` ; do
+     let "I_ARCH=$i * 2 "
+     let "I_PATH=$i * 2 + 1"
+     TMP_ARCH=${CR_ARRAY_COMMANDS[$I_ARCH]}
+     CR_FINAL_COMMAND="${CR_ARRAY_COMMANDS[$I_PATH]}"
+     if [ $CREXECUTABLE ] ; then
+       if [ $NCOMMANDS == "0" ] ;then 
+          CR_FINAL_COMMAND="$CR_FINAL_COMMAND -o $CREXECUTABLE"
+       else
+          CR_FINAL_COMMAND="$CR_FINAL_COMMAND -o $CREXECUTABLE.$TMP_ARCH"
+       fi
+     else
+        if [ $NCOMMANDS == "0" ] ;then
+           CR_FINAL_COMMAND="$CR_FINAL_COMMAND -o a.out"
+        else
+          CR_FINAL_COMMAND="$CR_FINAL_COMMAND -o a.out.$TMP_ARCH"
+       fi
+     fi
+     CR_FINAL_COMMAND="$CR_FINAL_COMMAND $USERARGS"
+     echo $CR_FINAL_COMMAND
+     $CR_FINAL_COMMAND
+  done 
+}
+################################################################################
+## Show usage of the crcomp command
+################################################################################
+crcomp_usage()
+{
+  echo -e "Usage: crcomp -env <mpicomp> [ -arch <arch> ] [options]\n"
+  echo -e "   Ex1.: crcomp -env mpiethercc helloc.c -o hello"
+  echo -e "   Ex2.: crcomp -env mpiethercc -arch ia32 hello.c -o hello\n"
+
+  echo -e "\tSupported compilation environments and architectures" 
+  let "TMP_N=$NCOMP_ENVS - 1"
+  for i in `seq 0 $TMP_N` ; do
+     TMP1=`echo ${COMP_ENVS[$i]} | awk '{ print $1 }'`
+     TMP2=`echo ${COMP_ENVS[$i]} | awk '{ print $2 }'`
+     echo -en "\t  env: $TMP1\t arch: $TMP2"
+     echo
+  done
+  echo -ne "\n   If -arch is not specified, one will use the all the available\n "
+  echo    "  architectures (the default architecture will be checked)"
+  echo
+  exit
+}
+################################################################################
+## MAIN
+################################################################################
+crcomp_getargs $@ 
+crcomp_get_comp_env $CRENV
+crcomp_compile_prog

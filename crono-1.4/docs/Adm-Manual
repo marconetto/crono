@@ -1,0 +1,791 @@
+
+  Cluster Management System CRONO - v1.4
+  ADMINISTRATOR MANUAL
+
+
+
+  This document describes the procedures for the installation and configuration
+  of CRONO, including the daemons, configuration files and some administrative
+  tools.
+
+  _________________________________________________________________________
+
+
+
+  Table of Contents
+
+
+  1. Installing CRONO
+
+  2. Configuration Files
+     2.1. crono.conf
+     2.2. groups
+     2.3. accessrights.defs
+     2.4. nodes
+     2.5. commands
+     2.6. mpreps and mpostps
+     2.7. login.access(or access.conf), hosts.equiv and PAM
+     2.8.1 Linux distributions with PAM 
+     2.8.2 Linux distributions without PAM 
+     2.9. amconf
+
+  3. CRONO Daemons
+     3.1. Access Manager (cramd) (AM)
+     3.2. Request Manager (crrmd) (RM)
+     3.3. Node Manager (crnmd) (NM)
+     3.4. How to start the daemons
+     3.5. How to stop the daemons
+
+  4. Administrative Tools
+     4.1. crstat
+     4.2  crnodesinfofilter
+     4.3. crmkmachfile 
+
+  5. crrun and crcomp
+
+  _________________________________________________________________________
+
+
+
+  1. Installing CRONO
+
+
+  After download the package crono-XXX.tar.gz, you must unpack in a
+  temporary directory.
+
+   # cd /<tmp_directory>
+        # gunzip crono-XXX.tar.gz
+        # tar -xvf crono-XXX.tar
+
+  The list below shows the files and directories that will be created.
+
+   COPYING
+   Changelog
+   README
+   bin/               -> User programs (after compilation)
+   docs/
+   docs/Adm-Manual    -> Administrator Manual
+   docs/User-Manual   -> User Manual
+   docs/UI-API-Manual -> API for the User Interface Commands (for developers) 
+   etc/
+   etc/amconf         -> Example of amconf file (Section 2.9 and User-Manual)
+   etc/homogeneous    -> Example of a homogeneous cluster configuration
+   etc/heterogeneous  -> Example of a heterogeneous cluster configuration
+   sbin/              -> Daemons (after compilation)
+   src/               -> Source code
+
+  Before compiling CRONO, some default configurations can be modified in the
+  src/Makefile.defs. Modify them if necessary.
+   
+  Next, change to the 'src' directory, type 'make' to build and 'make install'
+  to install the binaries and configuration files.
+
+   # cd src
+   # make
+   # make install
+
+  After that, you'll have the following programs:
+
+   In the 'bin' directory:
+   -> User Interface programs
+
+   In the 'sbin' directory:
+   -> Access Manager daemon: cramd
+   -> Request Manager daemon: crrmd
+   -> Node Manager daemon: crnmd
+
+   In the 'etc' directory:
+   -> Example of a cluster configuration: 'tropical' directory
+
+   For information about the User Interface programs, please consult the User
+   Manual.
+
+
+
+  2. Configuration
+
+
+  This session describes the CRONO's configuration files, as well as the
+  structure of the directory where they are found. Assuming that you have
+  installed CRONO in the /usr/local/ directory, the configuration files
+  will be in /usr/local/etc/ directory, and we'll call it DIRCONF.
+
+  The DIRCONF structure is:
+
+  <dirconf>/
+   amconf - this file contains the hostname and port for Access Manager
+   <cluster1>/ - configuration for cluster1
+   <cluster2>/ - configuration for cluster2
+   ...
+   ...
+
+  For each directory we have:
+
+  <clusterN>/
+   crono.conf         - Hostnames and ports used by the daemons, queue and log
+                        files, and other options.
+   groups             - Group of users.
+   accessrights.defs  - Access Rights definitions.
+   nodes              - Nodes of the cluster.
+   commands           - Commands that the users can execute on the nodes.
+   mpreps          - Master Pre-processing Script.
+   mpostps         - Master Post-processing Script.
+   hosts.equiv        - Original /etc/hosts.equiv file.
+   login.access       - Original /etc/security/access.conf (or /etc/login.access)
+                        file.
+
+
+  2.1 crono.conf
+
+  This is the main cluster configuration file. Here you have to specify the
+  hostname where each system manager is executed, the listened port, the path of
+  the log, pids and the requests queue, the number of users that can share a
+  node at same time, PAM support and timeout of connections between Request
+  Manager and Node Manager.
+
+  If you are interested to run CRONO on a single machine (not in a cluster),
+  it's necessary to turn on the single option (single=on) in the crono.conf
+  file. With this option the Request Manager ignores the function calls that
+  make communication to the Node Manager. 
+
+  A typical crono.conf file:
+
+  #################################################################
+  # CLUSTER: cluster1
+  #################################################################
+
+  # Server ports
+  amport=7001
+  rmport=7022
+  nmport=7004
+
+  # Server hosts
+  amhost=servername
+  rmhost=servername
+
+  # Number of users that can share a node at the same time(time-sharing)
+  share=2
+
+  # Single Option (off-> there is a cluster available)
+  #               (on-> there is not a cluster available)
+  single=off
+
+  # PAM support (on or off)
+  pam=on
+
+  #Connection Timeout in seconds
+  conntimeout=1
+
+  # Timeout of Master pre-processing script
+  tmpreps=2
+
+  # Timeout of Master post-processing script 
+  tmpostps=2
+  
+  # Log File
+  logfile=/usr/local/var/log/crono_cluster1.log
+
+  # Queue File
+  queuefile=/usr/local/var/queues/crono_cluster1.queue
+
+  # Process IDs Directory
+  piddir=/usr/local/var/pid/
+
+  #################################################################
+
+  For details of how PAM support option is used on CRONO, see the Section 2.7
+  of this manual.
+
+  If the nodes are in the same network of the machine that the Request Manager
+  is running, use a low value, like 1. Otherwise, use a higher value.   
+
+  2.2 groups
+
+  In this file it's possible to specify the group name and their members. This
+  file could be modified while the daemons are running.
+  Example of the groups file:
+
+  #################################################################
+  # group <group name>
+  #    <user>
+  #    <user>
+  #     ...
+  # endgroup
+  #   ...
+  #################################################################
+  group master
+     student1
+     student2
+     student3
+  endgroup
+  group group2
+     linux
+     unix
+     freebsd
+  endgroup
+  #################################################################
+
+
+  2.3 accessrights.defs
+
+  This file defines the user and user groups access rights. In each access
+  right profile it is possible to define the time, number of nodes and number
+  of future allocations (reserves) both in normal and special time.
+
+  This file could be modified while the daemons are running.
+
+  The syntax is illustrated as follows:
+
+  ######################################################################
+  # Access Rights configuration file
+  #
+  # special
+  #    <week day> <initial time>-<final time>
+  #    <week day> <initial time>-<final time>
+  #     ...
+  # endspecial
+  #
+  #users: <user|group> [ <user|group> <user|group> .... ]
+  #[ defaults: <options> ]
+  #nodetype <nodetype>: <options>
+  #[ nodetype <nodetype>: <options> ]
+  #...
+  #
+  ###################################################################### 
+  # options: 
+  #    time=<time>             : time for normal period
+  #    stime=<stime>           : time for special period
+  #    nnodes=<nnodes>         : number of nodes for normal period
+  #    snnodes=<snnodes>       : number of nodes for special period
+  #    nreserves=<nreserves>   : number of reserves for normal period
+  #    snreserves=<snreserves> : number of reserves for special period
+  #
+  ######################################################################
+
+  Some important issues about this file:
+
+  1) When some option is not specified, its value is zero;
+  2) When some option of the normal period is specified and its correspondent
+     options (in special period) is not specified, the special option receives
+     the value of the normal option.
+     Ex.:  time=30 nnodes=8
+           
+           The value of stime will be 30 and snnodes will be 8.
+  
+  3) It is possible to specify a user called "default". When a user
+     (or its group) is not specified anywhere and the "default" is,
+     such a user receives the specification of the "default" profile.
+
+  4) The "defaults" option of a user is useful when the managed cluster
+     is composed of heterogeneous clusters:
+     Ex.:
+          users: masters phds student5
+          defaults: time=30 stime=60 nreserves=0 snreserves=2
+          nodetype p3: nnodes=16
+          nodetype p4: nnodes=4 snnodes=8
+
+    In this example, for both nodetypes, the time and the number of reserves
+    are the same.
+
+   Two examples of accessrights.defs files can be found in DIRCONF directory.
+   One for homogeneous cluster and another one for heterogeneous cluster.
+
+  2.4 nodes
+
+  The hostname of each node must be included in this file. The Request Manager
+  reads this file looking for the nodes under its responsibility.
+  This file must also have the specification of the cluster node types.
+  The arch variable must be 'ia32' or 'ia64' because of the 'crcomp' and 'crrun'
+  commands. If you won't use the 'crcomp' and 'crrun' commands, you
+  can use any value for arch variable.
+  The syntax of the nodes file is:
+  
+  TYPES
+   
+  type=<nodetype>,arch=<architecture>,nprocs=<numb. of procs>,desc=<description>
+  type=<nodetype>,arch=<architecture>,nprocs=<numb. of procs>,desc=<description>
+  ...
+
+  NODES
+
+  <hostname>:<nodetype>
+  <hostname>:<nodetype>
+  ...
+
+  Below there is an example of the nodes file: 
+  ##############################################################################
+  TYPES
+
+  type=p3-550,arch=ia32,nprocs=1,desc="mem=256MB,cpu=2*1Ghz, no video"
+  type=p3-550v,typebase=p3-550,desc="p3-550 with video and monitor"
+  type=p3-1000,arch=ia32,nprocs=4,desc="mem=256MB,cpu=1Ghz, no video"
+  type=p4-2000,arch=ia32,nprocs=4,desc="mem=512MB,cpu=2Ghz, no video"
+  #Itanium nodes
+  type=ipf,arch=ia64,nprocs=8,desc="mem=1GB,cpu=900Mhz, no video"
+
+  NODES
+
+  cluster1_1:p3-550,p3-550v
+  cluster1_2:p3-550
+  cluster1_3:p3-550
+  cluster1_4:p3-550
+  cluster1_5:p3-1000
+  cluster1_6:p3-1000
+  cluster1_7:p3-1000
+  cluster1_8:p3-2000
+  cluster1_9:p3-2000
+  cluster1_10:ipf
+  cluster1_11:ipf
+                                   
+  ##############################################################################
+  If you want to use the crrun command, in nodes which have more than
+  one type, put the base type before the other types:
+
+     cluster1_1:p3-550,p3-550v   -> RIGHT
+     cluster1_1:p3-550v,p3-550   -> WRONG
+
+  This is due to the creation of the machine files.
+
+
+  2.5 commands
+
+  This file defines the user operations that are allowed to execute on the
+  nodes, through the crnmc tool. For example: the "killp" operation allows
+  to finalize the processes of the user in a list of nodes specified by him/her.
+
+  #################################################################
+  # <operation>: <command>
+  killp: skill -KILL -u $CR_USERNAME
+  #################################################################
+  
+  The CR_USERNAME,CR_USERID and CR_CLUSTER are the available variables that
+  can be used in this file.
+
+
+  2.6 mpreps and mpostps
+
+
+  The Master Pre-processing Script (MPREPS) and Master Post-processing Script
+  (MPOSTPS) are executed, respectively, at the start or finish user time. 
+  They're shell scripts that are called by the Request Manager and have some
+  variables available:
+     - CR_CLUSTER   = cluster name
+     - CR_USERID    = user id
+     - CR_USERNAME  = user name
+     - CR_NODES     = list of user nodes (e.g. : "tropical01 tropical02")
+     - CR_NODESINFO  = list of user nodes with additional information
+          Format: (for each node) 
+             <hostname>:<nodetype>:<architecture>:
+             <number of processes>:"<description>"<space>
+     - CR_RID      = request id
+  Example of usage:
+
+  #!/bin/sh
+  # Master Pre-Processing Script
+  #
+  # build machine files for MPI Ethernet (see tools Section 4.2)
+
+  $CRONOBIN/crmkmachfile -u $CR_USERID -c amazonia\
+  -env mpiether -n `eval $CRONOBIN/crnodesinfofilter $CR_NODESINFO`
+
+  # build machine files for MPI GM (see tools Section 4.2)
+
+  $CRONOBIN/crmkmachfile -u $CR_USERID -c amazonia\
+  -env mpigm -n `eval $CRONOBIN/crnodesinfofilter $CR_NODESINFO`
+
+  #################################################################
+
+  #################################################################
+  #!/bin/sh
+  # Master Post-Processing Script
+  #
+  crwritelogend $CR_USERNAME  # log for finishing resources use
+  # (crwritelogend doesn't exist, it is just an example
+  #################################################################
+
+  The mpreps and mpostps can be either scripts or programs.
+
+  2.7 login.access (or access.conf), hosts.equiv and PAM
+
+  In order to make possible the nodes to be accessed by only the allowed users,
+  CRONO modifies one file (if PAM is used) or two files (if PAM is NOT used) 
+  through the Node Manager.
+  PAM (Pluggable Authentication Modules) are at the core of user
+  authentication in most linux distributions, like Debian, Red Hat and Mandrake.
+  Slackware is an example of distribution which doesn't use PAM. 
+
+  2.8.1 Linux distributions with PAM 
+
+  If PAM is used, CRONO will modify only the login.access file in each start
+  or finish time of a user allocation.
+  Probably this file is called by those distributions like "access.conf"
+  and its path is /etc/security/access.conf .
+  For example, if you want to release the access for "root" and "crono"
+  users (that is, these users don't need to use cralloc command to have the
+  access to the nodes), you have to set up the login.access in the cluster
+  configuration directory (e.g. DIRCONF/cluster1/login.access):
+  #################################################################
+  # login.access
+  # Free access for root and crono users
+  #
+  -:ALL EXCEPT root crono :ALL
+  #################################################################
+
+  It's necessary to configure the PAM to read the access.conf every time when
+  the user login or execute a rsh on a node.
+  In order to do this, you have to modify three PAM files on each node:
+     /etc/pam.d/rsh
+     /etc/pam.d/rlogin
+     /etc/pam.d/login
+
+  Just add the following lines on these in "rlogin" and "rsh":
+    auth    sufficient      pam_rootok.so
+    account    required     pam_access.so
+
+  Uncomment the following line in "login":
+    account  required       pam_access.so
+
+  And remove the following line (in rsh, rlogin and login files):
+    auth            sufficient      pam_rhosts_auth.so
+
+  These files and paths may vary on which linux distribution you have.
+
+  2.8.2 Linux distributions without PAM 
+
+  If PAM is NOT used, CRONO will modify the login.access and hosts.equiv files
+  in each start or finish time of a user allocation.
+  For example, if you want to release the access for "root" and "crono"
+  users (that is, these users don't need to use cralloc command to have the
+  access to the nodes), we have to set up the login.access in the cluster
+  configuration directory (e.g. DIRCONF/cluster1/login.access):
+  #################################################################
+  # login.access
+  # Free access for root and crono users
+  #
+  -:ALL EXCEPT root crono :ALL
+  #################################################################
+
+  The login.access grants the access to the nodes only to the authorized users.
+  The hosts.equiv file filters nodes access by using the rsh command (remote
+  shell). Your rsh server must be started with an option to ignore the .rhosts
+  file (Slackware distribution starts the server (shell and login) in 
+  /etc/inetd.conf and uses the -l -h flag to ignore the .rhosts).
+  Example of DIRCONF/cluster1/hosts.equiv:
+
+  #################################################################
+  # hosts.equiv
+  localhost
+  + stelmar
+  #################################################################
+
+
+  2.9 amconf
+
+  This file is very simple and contains the hostname and port of the Access
+  Manager. This file is used by the User Interface tools to identify where is
+  the AM.
+  An example of the amconf file is:
+
+  #################################################################
+  # <hostname> <port>
+  servername 7001
+  #################################################################
+
+
+
+  3 CRONO Daemons 
+
+
+  3.1 Access Manager (cramd) (AM)
+
+  This daemon is used to receive requests from users, check the users access
+  rights and then forward the requests to the Requests Manager. A CRONO Access
+  Manager daemon can control more than one Requests Manager. Don't forget to set
+  the right ports and hostnames in the crono.conf file.
+
+  Usage: cramd [-v] [-d <dirconf> ] <cluster1> ...
+         cramd --help
+          -v              : Verbose mode
+          -d <dirconf>    : Configuration directory
+          --help          : Display this help and exit
+
+  Examples:
+  If you have one cluster use:
+      cramd cluster1
+  If you have more than one cluster use:
+      cramd cluster1 cluster2 cluster2
+
+  Configuration files needed to execute AM:
+     - crono.conf
+     - groups
+     - accessrights.defs
+     - accessrights.users
+     - nodes
+     - commands (if crnmc command is used)
+
+  3.2 Request Manager (crrmd) (RM)
+
+  This daemon receives the requests from the Access Manager and it is
+  responsible for scheduling the allocation requests. The crrmd daemon can
+  control only one cluster. Each time that the requests queue is changed, the
+  Request Manager store the queue on a file (defined in crono.conf file). If
+  the crrmd daemon is killed, your machine has crashed or another thing as
+  happened, you can retrieve the queue.
+
+  Usage: crrmd [-v] [-d <dirconf>]  [-c]  <cluster>
+       crrmd -k <cluster>
+       crrmd --help
+
+        -v              : Verbose mode
+        -c              : Clear the queue file if it exists 
+        -d <dirconf>    : Configuration directory
+        -k <cluster>    : Kill crrmd
+        --help          : Display this help and exit
+
+  Example:
+      crrmd cluster1
+
+  The Request Manager tries to retrieve the queue if the -c option is not
+  used.
+
+  Configuration files needed to execute RM:
+     - crono.conf
+     - nodes
+     - mpreps and mpostps (optional)
+
+  3.3 Node Manager (crnmd) (NM)
+
+  This daemon is used to change the contents of the /etc/hosts.equiv and the
+  /etc/login.access files to protect the nodes from users that are not
+  allowed to use them. It is also responsible for receiving requests from the
+  Request Manager for the execution of 'special commands'. Each cluster node
+  must have a crnmd daemon.
+
+  Usage: crnmd [-v] [-d <dirconf> ] <cluster>
+         crnmd -k <cluster>
+         crnmd --help
+          -v              : Verbose mode
+          -d <dirconf>    : Configuration directory
+          -k <cluster>    : Kill crnmd
+          --help          : Display this help and exit
+
+  Example:
+      crnmd tropical
+ 
+  Configuration files needed to execute NM:
+     - crono.conf
+     - commands (if crnmc command is used)
+     - login.access (or access.conf)
+     - hosts.equiv (if PAM is not used)
+
+  3.4 How to start the daemons
+
+  There is no order to start the CRONO daemons. A good way to start
+  them is the following:
+
+  Log on host machine (machine used to run user programs) and type:
+      $ cramd cluster1
+      $ crrmd cluster1
+
+  After this, you will have to start the crnmd daemons in all cluster nodes.
+  You can use a script like this:
+
+  #!/bin/sh
+  COMMAND="/usr/local/sbin/crnmd cluster1"
+  MACH=cluster1
+  for machine in `seq 1 8`
+  do
+      echo "rsh $MACH$machine $COMMAND"
+      rsh $MACH$machine $COMMAND
+  done
+
+  It's a good idea to start the daemons using the init scripts of Linux (rc.*),
+  on the front-end and on the each node.
+
+
+  3.5. How to stop the daemons
+
+  As you do not have an order to start de deamons, there is no order to
+  finalize them.
+  Below are the steps to do it:
+
+  To finalize the crnmd daemon of the cluster1:
+     $ crnmd -k cluster1
+
+  To finalize the crrmd daemon of the cluster1:
+     $ crrmd -k cluster1
+
+  To finalize the cramd daemon there is a little difference to the above
+  commands. This is because a cramd can manage more than one cluster. If your
+  cramd daemon was started like:
+     $ cramd cluster1
+
+  you can finalize it by this way:
+     $ cramd -k cluster1
+
+  But if you started this daemon like this (to manage more than one cluster),
+  for example:
+     $ cramd cluster1 cluster2 cluster3
+
+  you must specify the first cluster used to start the daemon. So, use this
+  command to finish it:
+     $ cramd -k cluster1
+
+
+  4. Administrative Tools
+
+  4.1. crstat
+
+  The crstat is a very simple administrative tool that allows the Administrator
+  to have some clusters usage information. It uses the log file generated by
+  CRONO to show the information.
+
+   Usage: crstat -f <log> -n <nnodes> [ -d <ndays> ]
+       crqview --help           
+                                
+        -f <log>                : Log file generated by Crono
+        -n <nnodes>             : Number of nodes the cluster has
+        -d <ndays>              : Number of days of the month
+        --help                  : Display this help and exit
+
+    Examples:
+
+      # crstat -f /usr/local/var/log/crono_cluster1.log -n 16
+      # crstat -f /usr/local/var/log/crono_cluster1.log -n 16 -d 15
+
+      And the result is something like this:
+
+      001> User: user14         Time: 413     minutes
+      002> User: bach           Time: 327     minutes
+      003> User: vivaldi        Time: 231     minutes
+
+       AVERAGE UTILIZATION: 16.616 %
+
+    When crstat opens the log file, it figures out the number of days based on
+    the month found in the first line of the file. The "-d" file can be useful
+    when you need to verify statistics during the current month, or you do not
+    want to consider some days of the month.
+
+
+  4.2. crnodesinfofilter
+   
+  This tool is a filter which receives as input the $CR_NODESINFO variable
+  and generates the following output:
+ 
+  <node type>:<arch>:<nprocs> <node1> <node2> ... <node type>:<arch>:<nprocs>
+  <node3> <node4> ... <node type>:<arch>:<nprocs> <node1> <node2>....
+
+  This output is used by the crmkmachfile.
+  
+
+  4.3. crmkmachfile
+
+  Using this tool, you will be able to create the machines files used by MPI
+  to execute the applications.
+
+  Usage: crmkmachfile -c <cluster> -env <environment>
+                   [-u <uid> ] -n <type>:<arch>:<nprocs> <node1> <node2> ...
+                                  <type>:<arch>:<nprocs> <node3> <node4> ...
+       crmkmachfile -l
+       crmkmachfile --help
+
+        -c <cluster>            : Cluster name
+        -env <environment>      : Environment name
+        -u <uid>                : User identification (option only for root)
+        -n                      : List of nodes
+        -l                      : Show the supported environments
+        --help                  : Display this help and exit
+
+  Ex.: crmkmachfile -c tropical -env mpiether -u 1001 -n ia32:e800=4 \
+       tropical01 tropical02 ia64:ipf=10 tropical05 tropical06
+
+  The files are in $HOME/.crono/machfile.<cluster>.<arch>.<environment> .
+  Ex.: /home/stelmar/.crono/machfile.tropical.ia64.mpiether
+
+  In general, in order to create the machine files, you can use the following
+  line in the mpreps.sh file:
+   
+
+   /usr/local/crono/bin/crmkmachfile -u $CR_USERID -c tropical\
+   -env mpiether -n `eval /usr/local/crono/bin/crnodesinfofilter $CR_NODESINFO`
+
+
+  5. Scripts crrun and crcomp
+
+  There are two wrapper scripts to help users to compile and run programs:
+  crcomp and crrun. The first one is useful in environments which have more
+  than on Mpi.
+  So the Administrator defines, for example, the Mpi directories and you can
+  choose one of the Mpi versions available. The second one is used to run
+  programs. In this second script you have to specify the environment, the
+  cluster, and optionality the architecture which will be used to run the
+  programs.
+  Below are just examples of the usage of these scripts.
+
+  To compile: crcomp (CRONO Compiler)
+
+  The user can specify if he/she wants an executable for a specific
+  architecture or not. For this procedure the user can provide the flag
+   "-arch <arch_name>". Possible values for this flag are defined by the
+  administrator (in general "ia32" and "ia64"). When the user doesn't specify
+  this flag, it will be generated two executables for all the available
+  architectures. In this case, one will add an extension in the executable
+  with the architecture names (like myprog.ia32 and myprog.ia64).
+
+   Usage: crcomp -env <mpicomp> [ -arch <arch> ] [options]
+
+   If -arch is not specified, one will compile for both architectures
+
+   Ex1.: crcomp -env mpiethercc hello.c -o hello
+   Ex2.: crcomp -env mpiethercc -arch ia64 hello.c -o hello
+
+
+  To run: crrun (CRONO Runner)
+
+  Usage: crrun -c <cluster> -env <mpirun> [-arch <arch> ] [options]
+
+   If -arch is not specified, one will run on the available architectures.
+
+   Ex1.: crrun -c amazonia -env mpiether -arch ia32 -np 8 hello
+   Ex2.: crrun -c amazonia -env mpigm -np 16 multiply 20 30
+
+  If the user has nodes of more than one architecture, crrun will look for the
+  extensions of all architecture names (like ".ia32" and ".ia64").
+  If the user doesn't want to use extensions, he/she can use the %a symbol,
+  for example /home/stelmar/%a/myprog.
+
+  When the user time starts, CRONO can create the machine files for all
+  execution environments. Therefore the "-machinefile" parameter will not
+  be used by the user.
+  To simplify the command line the user will pass just one "-np" and the
+  crrun command will create more than one "-np" (if necessary).
+
+  For example, suppose two machine files:
+  - IA64 machines:
+       amazonia01
+       amazonia02
+
+ - IA32 machines:
+       amazonia03
+       amazonia04
+       amazonia05
+
+  When the user gives "-np 3" crrun will create "-np 2" and "-np 1".
+  When the user gives "-np 5" crrun will create "-np 2" and "-np 3".
+  When the user gives "-np 7" crrun will create "-np 4" and "-np 3".
+  When the user gives "-np 9" crrun will create "-np 4" and "-np 5".
+  And so on.
+
+  Note  that the "best" machines will be used before the others.
+  In our case, the IA64 will be used before the iA32.
+
+  The machine files are stored in:
+     $HOME/.crono/machfile.<cluster>.<arch>.<environment>
+
+
+  The crrun and crcomp scripts available with the CRONO system are just examples
+  of scripts. They work very well on our environment (CPAD), but probably
+  you have to adapt them.
+
+  _________________________________________________________________________
+

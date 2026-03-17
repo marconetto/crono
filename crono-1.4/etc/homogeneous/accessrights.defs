@@ -1,0 +1,56 @@
+######################################################################
+# Access Rights configuration file
+#
+# special
+#    <week day> <initial time>-<final time>
+#    <week day> <initial time>-<final time>
+#     ...
+# endspecial
+#
+#users: <user|group> [ <user|group> <user|group> .... ]
+#[ defaults: <options> ]
+#nodetype <nodetype>: <options>
+#[ nodetype <nodetype>: <options> ]
+#...
+#
+###################################################################### 
+# options: 
+#    time=<time>             : time for normal period
+#    stime=<stime>           : time for special period
+#    nnodes=<nnodes>         : number of nodes for normal period
+#    snnodes=<snnodes>       : number of nodes for special period
+#    nreserves=<nreserves>   : number of reserves for normal period
+#    snreserves=<snreserves> : number of reserves for special period
+#
+######################################################################
+# Period of day and week that
+# has a special treatament 
+######################################################################
+
+special
+   sun 00:00-23:59
+   mon 19:00-23:59 
+   mon 00:00-8:00
+   tue 19:00-23:59  
+   tue 00:00-8:00
+   wed 18:00-23:59 
+   wed 00:00-8:00
+   thu 19:00-23:59 
+   thu 00:00-8:00
+   fri 19:00-23:59 
+   fri 00:00-8:00
+   sat 00:00-23:59
+endspecial
+
+######################################################################
+# Access Rights
+######################################################################
+users: cpad student5
+nodetype p4: nnodes=16 time=120 stime=240
+
+users: master 
+nodetype p4: nnodes=8 time=30 stime=60
+
+#users that are not definied anywhere
+users: default
+nodetype p4: nnodes=4 snnodes=8 time=20 stime=30
